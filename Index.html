@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Strategic Consulting</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f7fa;
+    color: #0a1f33;
+    overflow-x: hidden;
+  }
+
+  /* ═══ МАСКА ═══ */
+  #mask {
+    min-height: 100vh;
+    transition: opacity 1s;
+  }
+  #mask.corrupting * {
+    color: #ff2a2a !important;
+    text-shadow: 0 0 12px rgba(255,42,42,0.7) !important;
+  }
+  #mask.corrupting { animation: jitter 0.08s infinite; }
+  @keyframes jitter {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-1px, 1px); }
+  }
+
+  header {
+    padding: 24px 60px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(10, 31, 51, 0.08);
+  }
+  .logo { font-family: Georgia, serif; font-size: 22px; font-weight: 700; letter-spacing: 3px; }
+  nav ul { display: flex; gap: 40px; list-style: none; }
+  nav a { color: #0a1f33; text-decoration: none; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .hero { padding: 120px 60px 80px; max-width: 1400px; margin: 0 auto; }
+  .hero h1 { font-family: Georgia, serif; font-size: clamp(48px, 8vw, 110px); font-weight: 400; line-height: 1; margin-bottom: 30px; }
+  .hero p { font-size: 18px; max-width: 600px; line-height: 1.6; color: #8a99a8; margin-bottom: 40px; }
+
+  .btn { padding: 18px 40px; background: #0a1f33; color: white; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border: none; cursor: pointer; }
+  .btn-outline { background: transparent; color: #0a1f33; border: 1px solid #0a1f33; margin-left: 20px; }
+
+  section { padding: 80px 60px; max-width: 1400px; margin: 0 auto; }
+  .section-title { font-family: Georgia, serif; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: #c9a961; margin-bottom: 20px; }
+  .section-heading { font-family: Georgia, serif; font-size: clamp(32px, 5vw, 56px); font-weight: 400; margin-bottom: 40px; }
+  .about-text { font-size: 18px; line-height: 1.8; max-width: 700px; }
+
+  .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 30px; }
+  .service-card { padding: 40px 30px; background: white; border: 1px solid rgba(10,31,51,0.08); }
+  .service-num { font-family: Georgia, serif; font-size: 40px; color: #c9a961; margin-bottom: 20px; }
+  .service-card h3 { font-family: Georgia, serif; font-size: 24px; font-weight: 400; margin-bottom: 12px; }
+
+  .portfolio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 30px; }
+  .portfolio-item { aspect-ratio: 4/3; background: linear-gradient(135deg, #0a1f33, #16283a); padding: 30px; color: white; display: flex; flex-direction: column; justify-content: flex-end; }
+  .portfolio-item h3 { font-family: Georgia, serif; font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+
+  .contact-box { background: #0a1f33; color: white; padding: 80px 60px; margin: 0 auto; max-width: 1400px; }
+
+  footer { padding: 40px 60px; text-align: center; font-size: 13px; color: #8a99a8; }
+
+  /* ═══ ИГРА ═══ */
+  #game {
+    position: fixed; inset: 0;
+    background: #000;
+    display: none;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  #game.active { display: block; }
+
+  #rain {
+    position: fixed; inset: 0;
+    z-index: 0;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  #game-content {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 30px 120px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .game-title {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(36px, 6vw, 72px);
+    color: #ff2a2a;
+    letter-spacing: 6px;
+    text-align: center;
+    margin-bottom: 60px;
+    text-shadow: 0 0 40px rgba(255,42,42,0.7);
+    animation: pulse 4s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+  }
+
+  .stage {
+    margin-bottom: 50px;
+    padding: 25px;
+    border-left: 2px solid rgba(255,42,42,0.4);
+    background: rgba(255,42,42,0.02);
+    transition: opacity 0.8s;
+  }
+  .stage.hidden { display: none; }
+  .stage.solved { opacity: 0.25; pointer-events: none; }
+
+  .stage p {
+    color: rgba(220, 220, 220, 0.9);
+    font-size: 16px;
+    line-height: 1.9;
+    margin-bottom: 20px;
+  }
+
+  .cipher {
+    display: inline-block;
+    color: #ff2a2a;
+    background: rgba(255,42,42,0.08);
+    border: 1px solid rgba(255,42,42,0.3);
+    padding: 6px 14px;
+    margin: 8px 0;
+    letter-spacing: 3px;
+    font-size: 17px;
+    user-select: all;
+    cursor: copy;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .input-row input {
+    flex: 1;
+    min-width: 200px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,42,42,0.5);
+    color: #ff2a2a;
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    letter-spacing: 5px;
+    text-align: center;
+    padding: 12px;
+    outline: none;
+    text-transform: uppercase;
+  }
+  .input-row input::placeholder {
+    color: rgba(255,42,42,0.3);
+    letter-spacing: 2px;
+    font-size: 13px;
+    text-transform: lowercase;
+  }
+  .input-row input.shake {
+    animation: shake 0.4s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  .input-row button {
+    background: transparent;
+    border: 1px solid rgba(255,42,42,0.5);
+    color: #ff2a2a;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    padding: 12px 22px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+  }
+  .input-row button:hover {
+    background: #ff2a2a;
+    color: #000;
+  }
+
+  .stage-hint {
+    margin-top: 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 2px;
+    opacity: 0;
+    transition: opacity 0.8s;
+  }
+  .stage-hint.visible { opacity: 1; }
+
+  /* ═══ ФИНАЛ ═══ */
+  #finale {
+    position: fixed; inset: 0;
+    background: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 40px 20px;
+  }
+  #finale.active { display: flex; }
+
+  .finale-content {
+    max-width: 600px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+  }
+  .finale-content p {
+    color: rgba(220, 220, 220, 0.85);
+    font-size: 16px;
+    line-height: 1.9;
+    margin-bottom: 22px;
+    opacity: 0;
+    animation: fadeUp 1.5s forwards;
+  }
+  .finale-content p:nth-child(1) { animation-delay: 0.3s; }
+  .finale-content p:nth-child(2) { animation-delay: 2s; }
+  .finale-content p:nth-child(3) { animation-delay: 4s; }
+  .finale-content p:nth-child(4) { animation-delay: 6.5s; }
+  .finale-content p:nth-child(5) { animation-delay: 8.5s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .finale-content .name {
+    font-size: 44px;
+    color: #ff2a2a;
+    letter-spacing: 8px;
+    text-shadow: 0 0 40px rgba(255,42,42,0.9);
+  }
+
+  .finale-content .dont-forget {
+    color: #ff2a2a;
+    font-size: 26px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(255,42,42,0.8);
+  }
+
+  @media (max-width: 768px) {
+    header { padding: 20px 24px; flex-wrap: wrap; }
+    nav ul { gap: 16px; }
+    .hero { padding: 80px 24px 40px; }
+    section { padding: 50px 24px; }
+    .contact-box { padding: 50px 24px; }
+    #game-content { padding: 50px 20px 80px; }
+    .stage { padding: 18px; }
+    .stage p { font-size: 14px; }
+    .cipher { font-size: 14px; letter-spacing: 2px; }
+    .input-row input { font-size: 16px; letter-spacing: 3px; }
+    .finale-content .name { font-size: 32px; letter-spacing: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ МАСКА ═══ -->
+<div id="mask">
+  <header>
+    <div class="logo">MERIDIAN</div>
+    <nav>
+      <ul>
+        <li><a href="#">О нас</a></li>
+        <li><a href="#">Услуги</a></li>
+        <li><a href="#">Портфолио</a></li>
+        <li><a href="#">Контакт</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>Стратегия.<br>Точность.<br>Результат.</h1>
+    <p>Консалтинг для тех, кто не любит компромиссы. Более 15 лет опыта в стратегическом планировании и цифровой трансформации.</p>
+    <div>
+      <button class="btn">Связаться</button>
+      <button class="btn btn-outline">Портфолио</button>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-title">О нас</div>
+    <h2 class="section-heading">Простой подход к сложным задачам</h2>
+    <p class="about-text">Мы — команда стратегов, которые верят: лучшие решения рождаются там, где тишина встречается с ясностью.</p>
+  </section>
+
+  <section>
+    <div class="section-title">Услуги</div>
+    <h2 class="section-heading">Что мы делаем</h2>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-num">01</div>
+        <h3>Стратегия</h3>
+        <p>Планирование с учётом всех переменных.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-num">02</div>
+        <h3>Анализ</h3>
+        <p>Видим то, что скрыто.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-num">03</div>
+        <h3>Реализация</h3>
+        <p>Доводим проекты до конца.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">Портфолио</div>
+    <h2 class="section-heading">Избранные проекты</h2>
+    <div class="portfolio-grid">
+      <div class="portfolio-item"><h3>Anamnesis</h3></div>
+      <div class="portfolio-item"><h3>Silent Partner</h3></div>
+      <div class="portfolio-item"><h3>Echo Chamber</h3></div>
+      <div class="portfolio-item"><h3>The Forgotten</h3></div>
+    </div>
+  </section>
+
+  <div class="contact-box">
+    <h2 style="font-family: Georgia, serif; font-size: 48px; margin-bottom: 20px;">Давайте поговорим.</h2>
+    <p style="opacity: 0.7;">Если вы читаете это — значит, у вас есть вопрос. Возможно, вы даже знаете ответ.</p>
+  </div>
+
+  <footer>© 2024 Meridian Strategic.</footer>
+</div>
+
+<!-- ═══ ИГРА ═══ -->
+<div id="game">
+  <canvas id="rain"></canvas>
+  <div id="game-content">
+    <h1 class="game-title">НАЙДИ ЕГО</h1>
+
+    <!-- СТАДИЯ 1 -->
+    <div id="stage-1" class="stage">
+      <p>Он оставил это место для тебя.<br>Только для тех, кто помнит.</p>
+      <p>Первый знак — он подписывался им в письмах:</p>
+      <p><span class="cipher">Sk9ITg==</span></p>
+      <p>Второй — вырезал на двери кабинета:</p>
+      <p><span class="cipher">444F45</span></p>
+      <p>Он говорил на двух языках машины. Собери его имя.</p>
+      <div class="input-row">
+        <input id="input-1" type="text" placeholder="введи имя" autocomplete="off" spellcheck="false">
+        <button type="button" onclick="checkAnswer(1)">→</button>
+      </div>
+      <div class="stage-hint" id="hint-1">Base64 и Hex</div>
+    </div>
+
+    <!-- СТАДИЯ 2 -->
+    <div id="stage-2" class="stage hidden">
+      <p>Джон Доу — это маска.<br>Так подписывают тела, которые не опознали.</p>
+      <p>Он зашифровал настоящее имя его же ложным именем.<br>Шифр, который называли неразгаданным четыреста лет:</p>
+      <p><span class="cipher">WSTB</span></p>
+      <p>Ключ — то, что ты только что ввёл.</p>
+      <div class="input-row">
+        <input id="input-2" type="text" placeholder="введи имя" autocomplete="off" spellcheck="false">
+        <button type="button" onclick="checkAnswer(2)">→</button>
+      </div>
+      <div class="stage-hint" id="hint-2">Vigenère. Ключ — JOHN.</div>
+    </div>
+
+    <!-- СТАДИЯ 3 -->
+    <div id="stage-3" class="stage hidden">
+      <p>NEMO. На латыни — «никто».<br>Так Одиссей назвал себя, чтобы обмануть циклопа.</p>
+      <p>Он говорил это на языке точек и тире:</p>
+      <p><span class="cipher">-. .. -.- - ---</span></p>
+      <p>Назови его этим словом. На его языке.</p>
+      <div class="input-row">
+        <input id="input-3" type="text" placeholder="введи имя" autocomplete="off" spellcheck="false">
+        <button type="button" onclick="checkAnswer(3)">→</button>
+      </div>
+      <div class="stage-hint" id="hint-3">Morse → NIKTO → НИКТО</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ФИНАЛ ═══ -->
+<div id="finale">
+  <div class="finale-content">
+    <p>Ты назвал его.</p>
+    <p class="name">НИКТО</p>
+    <p>Он был здесь, пока ты не отвернулся.<br>Он говорил, пока ты не перестал слышать.<br>Он ушёл, когда ты перестал помнить.</p>
+    <p>Теперь он может уйти совсем.</p>
+    <p class="dont-forget">Don't_forget.</p>
+  </div>
+</div>
+
+<!-- Музыка: замени на свой файл рядом с index.html -->
+<audio id="track" loop preload="none">
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  // ═══ Ответы (нормализуются: верхний регистр, без пробелов) ═══
+  var ANSWERS = {
+    1: ['JOHNDOE', 'ДЖОНДОУ'],
+    2: ['NEMO', 'НЕМО'],
+    3: ['NIKTO', 'НИКТО', 'NOBODY']
+  };
+
+  var wrongCounts = { 1: 0, 2: 0, 3: 0 };
+  var started = false;
+  var finished = false;
+
+  // ═══ Старт игры по клику на маску ═══
+  document.getElementById('mask').addEventListener('click', function(e) {
+    if (started) return;
+    e.preventDefault();
+    startGame();
+  });
+
+  function startGame() {
+    started = true;
+
+    // Пробуем включить музыку
+    try {
+      var track = document.getElementById('track');
+      if (track) {
+        track.volume = 0.7;
+        var p = track.play();
+        if (p && p.catch) p.catch(function() {});
+      }
+    } catch (err) {}
+
+    // Ломаем маску
+    var mask = document.getElementById('mask');
+    mask.classList.add('corrupting');
+
+    // Собираем все текстовые узлы
+    var walker = document.createTreeWalker(mask, NodeFilter.SHOW_TEXT, null, false);
+    var textNodes = [];
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue.trim().length > 0) {
+        textNodes.push(node);
+      }
+    }
+
+    // Заменяем по одному
+    textNodes.forEach(function(tn, i) {
+      setTimeout(function() {
+        tn.nodeValue = 'НАЙДИ ЕГО';
+      }, i * 30);
+    });
+
+    var totalTime = textNodes.length * 30 + 800;
+
+    // Прячем маску, показываем игру
+    setTimeout(function() {
+      document.body.style.background = '#000';
+      mask.style.opacity = '0';
+      setTimeout(function() {
+        mask.style.display = 'none';
+        document.getElementById('game').classList.add('active');
+        startRain();
+        var firstInput = document.getElementById('input-1');
+        if (firstInput) firstInput.focus();
+      }, 1000);
+    }, totalTime);
+  }
+
+  // ═══ Проверка ответа ═══
+  function checkAnswer(stageNum) {
+    stageNum = parseInt(stageNum, 10);
+    var input = document.getElementById('input-' + stageNum);
+    if (!input) return;
+
+    var raw = input.value.trim().toUpperCase();
+    var normalized = raw.replace(/\s+/g, '');
+    if (!normalized) return;
+
+    var valid = ANSWERS[stageNum];
+    if (valid.indexOf(normalized) !== -1) {
+      handleCorrect(stageNum);
+    } else {
+      handleWrong(stageNum, input);
+    }
+  }
+
+  function handleWrong(stageNum, input) {
+    wrongCounts[stageNum]++;
+
+    input.value = '';
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+
+    if (wrongCounts[stageNum] >= 3) {
+      var hint = document.getElementById('hint-' + stageNum);
+      if (hint) hint.classList.add('visible');
+    }
+  }
+
+  function handleCorrect(stageNum) {
+    var stage = document.getElementById('stage-' + stageNum);
+    stage.classList.add('solved');
+
+    if (stageNum < 3) {
+      var nextNum = stageNum + 1;
+      setTimeout(function() {
+        var next = document.getElementById('stage-' + nextNum);
+        next.classList.remove('hidden');
+        setTimeout(function() {
+          var nextInput = document.getElementById('input-' + nextNum);
+          if (nextInput) nextInput.focus();
+          next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }, 500);
+    } else {
+      showFinale();
+    }
+  }
+
+  function showFinale() {
+    if (finished) return;
+    finished = true;
+
+    var game = document.getElementById('game');
+    game.style.transition = 'opacity 1.5s';
+    game.style.opacity = '0';
+
+    setTimeout(function() {
+      game.style.display = 'none';
+      document.getElementById('finale').classList.add('active');
+    }, 1500);
+  }
+
+  // ═══ Дождь из кода ═══
+  function startRain() {
+    var canvas = document.getElementById('rain');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var chars = '01ПОМНИТЬЗАБУДЬТЫОНЖДЁТНАЙДИЕГОアイウエオカキクケコ';
+    var fontSize = 14;
+    var drops = [];
+
+    function initDrops() {
+      var cols = Math.floor(canvas.width / fontSize);
+      drops = [];
+      for (var i = 0; i < cols; i++) drops[i] = 1;
+    }
+    initDrops();
+    window.addEventListener('resize', initDrops);
+
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(220, 220, 220, 0.8)';
+      ctx.font = fontSize + 'px monospace';
+
+      for (var i = 0; i < drops.length; i++) {
+        var char = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.97) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    setInterval(draw, 55);
+  }
+
+  // ═══ Enter в поле = проверка ═══
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.id && e.target.id.indexOf('input-') === 0) {
+      e.preventDefault();
+      var stageNum = parseInt(e.target.id.replace('input-', ''), 10);
+      checkAnswer(stageNum);
+    }
+  });
+</script>
+
+</body>
+</html>
